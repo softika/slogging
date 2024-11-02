@@ -4,7 +4,9 @@
 
 # Logging Library
 
-This package provides a singleton logger using the `slog` package, configured with different logging levels based on the application environment. It outputs logs in JSON format.
+This package provides a singleton logger using the `slog` package, configured with different logging levels based on the application environment. 
+It outputs logs in JSON format. Optionally, you can inject your own `slog.Handler` to the `slogger`.
+
 
 ## Features
 
@@ -14,6 +16,8 @@ This package provides a singleton logger using the `slog` package, configured wi
     - `production`: Error level.
     - Default: Info level.
 - Singleton logger instance to ensure only one logger is created.
+- Error logging with context.
+- Custom `slog.Handler` injection.
 
 ## Installation
 
@@ -25,10 +29,10 @@ go get github.com/softika/logging
 
 ### 1. Import the Package
 
-Import the `logging` package in your Go code:
+Import the `slogging` package in your Go code:
 
 ```go
-import "github.com/softika/logging"
+import "github.com/softika/slogging"
 ```
 
 ### 2. Configure the Environment Variable
@@ -41,17 +45,17 @@ export ENVIRONMENT=development  # Options: local, development, production
 
 ### 3. Use the Logger
 
-Retrieve the singleton logger instance by calling `Logger()`, and use it for logging messages.
+Retrieve the singleton logger instance by calling `Slogger()`, and use it for logging messages.
 
 ```go
 package main
 
 import (
-	"log/slog"
-	"context"
+    "log/slog"
+    "context"
     "errors"
 	
-	"github.com/softika/slogging"
+    "github.com/softika/slogging"
 )
 
 func main() {
@@ -89,3 +93,38 @@ With `ENVIRONMENT=development`, the output for the above logs would look like:
 ```
 
 In production, only `ERROR` level messages will appear in the output.
+
+## Custom Handler
+
+You can inject your own `slog.Handler` to the logger instance. For example, you can use the `slog.TextHandler` to output logs in text format:
+
+```go
+package main
+
+import (
+    "errors"
+    "log/slog"
+    "os"
+    
+    "github.com/softika/slogging"
+)
+
+func main() {
+    // create new slog.Handler	
+    handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+        Level: slog.LevelError,
+    })
+	
+    // init logger with custom handler
+    logger := slogging.Slogger(handler)
+
+    // log error
+    logger.Error("error message", "error", errors.New("error details"))
+}
+```
+
+And the output would be:
+
+```
+time=2024-11-02T22:59:19.256+01:00 level=ERROR msg="error message" error="error details"
+```

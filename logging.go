@@ -7,12 +7,14 @@ import (
 	"sync"
 )
 
+type key string
+
 const (
-	requestIdKey     = "request_id"
-	correlationIdKey = "correlation_id"
-	userIdKey        = "user_id"
-	accountIdKey     = "account_id"
-	orgIdKey         = "org_id"
+	requestIdKey     key = "request_id"
+	correlationIdKey key = "correlation_id"
+	userIdKey        key = "user_id"
+	accountIdKey     key = "account_id"
+	orgIdKey         key = "org_id"
 )
 
 var (
@@ -21,7 +23,7 @@ var (
 	once sync.Once
 )
 
-func Slogger() *slog.Logger {
+func Slogger(handlers ...slog.Handler) *slog.Logger {
 	once.Do(func() {
 		logLevel := slog.LevelInfo
 
@@ -33,13 +35,30 @@ func Slogger() *slog.Logger {
 			logLevel = slog.LevelError
 		}
 
-		jsonHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-			Level: logLevel,
-		})
-		logger = slog.New(newContextJsonHandler(jsonHandler))
+		if len(handlers) > 0 {
+			logger = slog.New(handlers[0])
+			return
+		} else {
+			jsonHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+				Level: logLevel,
+			})
+			logger = slog.New(newContextJsonHandler(jsonHandler))
+		}
 
 	})
 	return logger
+}
+
+type options struct {
+	handler slog.Handler
+}
+
+type Option func(*options)
+
+func WithHandler(handler slog.Handler) Option {
+	return func(o *options) {
+		o.handler = handler
+	}
 }
 
 type contextJsonHandler struct {
@@ -52,19 +71,19 @@ func newContextJsonHandler(handler *slog.JSONHandler) slog.Handler {
 
 func (h *contextJsonHandler) Handle(ctx context.Context, r slog.Record) error {
 	if requestId, ok := ctx.Value(requestIdKey).(string); ok {
-		r.AddAttrs(slog.String(requestIdKey, requestId))
+		r.AddAttrs(slog.String(string(requestIdKey), requestId))
 	}
 	if correlationId, ok := ctx.Value(correlationIdKey).(string); ok {
-		r.AddAttrs(slog.String(correlationIdKey, correlationId))
+		r.AddAttrs(slog.String(string(correlationIdKey), correlationId))
 	}
 	if userId, ok := ctx.Value(userIdKey).(string); ok {
-		r.AddAttrs(slog.String(userIdKey, userId))
+		r.AddAttrs(slog.String(string(userIdKey), userId))
 	}
 	if accountId, ok := ctx.Value(accountIdKey).(string); ok {
-		r.AddAttrs(slog.String(accountIdKey, accountId))
+		r.AddAttrs(slog.String(string(accountIdKey), accountId))
 	}
 	if orgId, ok := ctx.Value(orgIdKey).(string); ok {
-		r.AddAttrs(slog.String(orgIdKey, orgId))
+		r.AddAttrs(slog.String(string(orgIdKey), orgId))
 	}
 	return h.handler.Handle(ctx, r)
 }

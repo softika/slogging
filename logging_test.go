@@ -81,3 +81,17 @@ func TestLogger(t *testing.T) {
 		})
 	}
 }
+
+func TestLoggerWithHandler(t *testing.T) {
+	t.Parallel()
+
+	os.Setenv("ENVIRONMENT", "development")
+	defer os.Unsetenv("ENVIRONMENT")
+
+	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelError,
+	})
+	logger := slogging.Slogger(handler)
+
+	logger.Error("error message", "error", errors.New("error details"))
+}
