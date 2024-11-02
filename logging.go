@@ -10,11 +10,11 @@ import (
 type key string
 
 const (
-	requestIdKey     key = "request_id"
-	correlationIdKey key = "correlation_id"
-	userIdKey        key = "user_id"
-	accountIdKey     key = "account_id"
-	orgIdKey         key = "org_id"
+	RequestIdKey     key = "request_id"
+	CorrelationIdKey key = "correlation_id"
+	UserIdKey        key = "user_id"
+	AccountIdKey     key = "account_id"
+	OrgIdKey         key = "org_id"
 )
 
 var (
@@ -70,20 +70,20 @@ func newContextJsonHandler(handler *slog.JSONHandler) slog.Handler {
 }
 
 func (h *contextJsonHandler) Handle(ctx context.Context, r slog.Record) error {
-	if requestId, ok := ctx.Value(requestIdKey).(string); ok {
-		r.AddAttrs(slog.String(string(requestIdKey), requestId))
+	if requestId, ok := ctx.Value(RequestIdKey).(string); ok {
+		r.AddAttrs(slog.String(string(RequestIdKey), requestId))
 	}
-	if correlationId, ok := ctx.Value(correlationIdKey).(string); ok {
-		r.AddAttrs(slog.String(string(correlationIdKey), correlationId))
+	if correlationId, ok := ctx.Value(CorrelationIdKey).(string); ok {
+		r.AddAttrs(slog.String(string(CorrelationIdKey), correlationId))
 	}
-	if userId, ok := ctx.Value(userIdKey).(string); ok {
-		r.AddAttrs(slog.String(string(userIdKey), userId))
+	if userId, ok := ctx.Value(UserIdKey).(string); ok {
+		r.AddAttrs(slog.String(string(UserIdKey), userId))
 	}
-	if accountId, ok := ctx.Value(accountIdKey).(string); ok {
-		r.AddAttrs(slog.String(string(accountIdKey), accountId))
+	if accountId, ok := ctx.Value(AccountIdKey).(string); ok {
+		r.AddAttrs(slog.String(string(AccountIdKey), accountId))
 	}
-	if orgId, ok := ctx.Value(orgIdKey).(string); ok {
-		r.AddAttrs(slog.String(string(orgIdKey), orgId))
+	if orgId, ok := ctx.Value(OrgIdKey).(string); ok {
+		r.AddAttrs(slog.String(string(OrgIdKey), orgId))
 	}
 	return h.handler.Handle(ctx, r)
 }

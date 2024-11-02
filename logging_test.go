@@ -24,10 +24,10 @@ func TestLoggerEnvironment(t *testing.T) {
 
 	logger.Warn("application warning", slog.String("module", "logging"))
 
-	ctx := context.WithValue(context.Background(), "correlation_id", "unique_id_value")
+	ctx := context.WithValue(context.Background(), slogging.CorrelationIdKey, "e1156cc4-57bf-4b09-926f-1112b8f89a03")
 	logger.ErrorContext(ctx, "error message", "error", errors.New("error details"))
 
-	ctx = context.WithValue(ctx, "user_id", "unique_id_value")
+	ctx = context.WithValue(ctx, slogging.UserIdKey, "425b0d3a-b3b6-4e21-882d-1ca94c798df0")
 	logger.ErrorContext(ctx, "error message", "error", errors.New("error details"))
 }
 

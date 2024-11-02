@@ -5,7 +5,7 @@
 # Logging Library
 
 This package provides a singleton logger using the `slog` package, configured with different logging levels based on the application environment. 
-It outputs logs in JSON format. Optionally, you can inject your own `slog.Handler` to the `slogger`.
+By default, it outputs logs in JSON format. Optionally, you can inject your own `slog.Handler` to the `slogger` to change the format of log entries.
 
 
 ## Features
@@ -16,7 +16,7 @@ It outputs logs in JSON format. Optionally, you can inject your own `slog.Handle
     - `production`: Error level.
     - Default: Info level.
 - Singleton logger instance to ensure only one logger is created.
-- Error logging with context.
+- Logging with context.
 - Custom `slog.Handler` injection.
 
 ## Installation
