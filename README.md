@@ -4,9 +4,8 @@
 
 # Logging Library
 
-This package provides a singleton logger using the `slog` package, configured with different logging levels based on the application environment. 
+This package provides a **zero dependencies singleton logger** using the `slog` package, configured with different logging levels based on the application environment. 
 By default, it outputs logs in JSON format. Optionally, you can inject your own `slog.Handler` to the `slogger` to change the format of log entries.
-
 
 ## Features
 

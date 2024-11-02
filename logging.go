@@ -49,18 +49,6 @@ func Slogger(handlers ...slog.Handler) *slog.Logger {
 	return logger
 }
 
-type options struct {
-	handler slog.Handler
-}
-
-type Option func(*options)
-
-func WithHandler(handler slog.Handler) Option {
-	return func(o *options) {
-		o.handler = handler
-	}
-}
-
 type contextJsonHandler struct {
 	handler *slog.JSONHandler
 }
