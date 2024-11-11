@@ -10,7 +10,24 @@ import (
 	"github.com/softika/slogging"
 )
 
-func TestLoggerEnvironment(t *testing.T) {
+func TestSloggerSingleton(t *testing.T) {
+	t.Parallel()
+
+	logger1 := slogging.Slogger()
+	logger2 := slogging.Slogger()
+
+	if logger1 != logger2 {
+		t.Errorf("expected logger1 to be equal to logger2")
+	}
+
+	logger3 := slogging.Slogger(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{}))
+
+	if logger1 != logger3 {
+		t.Errorf("expected logger1 to be equal to logger3")
+	}
+}
+
+func TestSloggerEnvironment(t *testing.T) {
 	t.Parallel()
 
 	os.Setenv("ENVIRONMENT", "development")
@@ -31,7 +48,7 @@ func TestLoggerEnvironment(t *testing.T) {
 	logger.ErrorContext(ctx, "error message", "error", errors.New("error details"))
 }
 
-func TestLogger(t *testing.T) {
+func TestSlogger(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
