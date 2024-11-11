@@ -10,11 +10,11 @@ import (
 type key string
 
 const (
-	RequestIdKey     key = "request_id"
-	CorrelationIdKey key = "correlation_id"
-	UserIdKey        key = "user_id"
-	AccountIdKey     key = "account_id"
-	OrgIdKey         key = "org_id"
+	RequestIdKey     key = "X-Request-Id"
+	CorrelationIdKey key = "X-Correlation-Id"
+	UserIdKey        key = "X-User-Id"
+	AccountIdKey     key = "X-Account-Id"
+	OrgIdKey         key = "X-Org-Id"
 )
 
 var (
