@@ -23,8 +23,23 @@ var (
 	once sync.Once
 )
 
-func Slogger(handlers ...slog.Handler) *slog.Logger {
+// Slogger initializes or retrieves a singleton instance of slog.Logger with a structured JSONHandler.
+// By default, it configures the log level based on the ENVIRONMENT variable; if ENVIRONMENT is unset,
+// it defaults to INFO level.
+// This function supports injecting a custom handler on the first call, allowing for flexible logging configurations.
+//
+// Example usage:
+//
+//	logger := slogging.Slogger(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+//	      Level: slog.LevelError,
+//	}))
+func Slogger(h ...slog.Handler) *slog.Logger {
 	once.Do(func() {
+		if len(h) > 0 {
+			logger = slog.New(h[0])
+			return
+		}
+
 		logLevel := slog.LevelInfo
 
 		env := os.Getenv("ENVIRONMENT")
@@ -35,15 +50,10 @@ func Slogger(handlers ...slog.Handler) *slog.Logger {
 			logLevel = slog.LevelError
 		}
 
-		if len(handlers) > 0 {
-			logger = slog.New(handlers[0])
-			return
-		} else {
-			jsonHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-				Level: logLevel,
-			})
-			logger = slog.New(newContextJsonHandler(jsonHandler))
-		}
+		jsonHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level: logLevel,
+		})
+		logger = slog.New(newContextJsonHandler(jsonHandler))
 
 	})
 	return logger
