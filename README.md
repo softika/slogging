@@ -71,10 +71,10 @@ func main() {
     logger.Warn("application warning", slog.String("module", "logging"))
     
     // Log error with context
-    ctx := context.WithValue(context.Background(), "correlation_id", "unique_id_value")
+    ctx := context.WithValue(context.Background(), "X-Correlation-Id", "unique_id_value")
     logger.ErrorContext(ctx, "error message", "error", errors.New("error details"))
 
-    ctx = context.WithValue(ctx, "user_id", "unique_id_value")
+    ctx = context.WithValue(ctx, "X-User-Id", "unique_id_value")
     logger.ErrorContext(ctx, "error message", "error", errors.New("error details"))
 }
 ```
@@ -87,8 +87,8 @@ With `ENVIRONMENT=development`, the output for the above logs would look like:
 {"time":"2024-11-02T22:39:45.732646+01:00","level":"INFO","msg":"application info","module":"logging"}
 {"time":"2024-11-02T22:39:45.732812+01:00","level":"DEBUG","msg":"application debug","module":"logging"}
 {"time":"2024-11-02T22:39:45.732815+01:00","level":"WARN","msg":"application warning","module":"logging"}
-{"time":"2024-11-02T22:39:45.732818+01:00","level":"ERROR","msg":"error message","error":"error details","correlation_id":"unique_id_value"}
-{"time":"2024-11-02T22:39:45.732823+01:00","level":"ERROR","msg":"error message","error":"error details","correlation_id":"unique_id_value","user_id":"unique_id_value"}
+{"time":"2024-11-02T22:39:45.732818+01:00","level":"ERROR","msg":"error message","error":"error details","X-Correlation-Id":"unique_id_value"}
+{"time":"2024-11-02T22:39:45.732823+01:00","level":"ERROR","msg":"error message","error":"error details","X-Correlation-Id":"unique_id_value","X-User-Id":"unique_id_value"}
 ```
 
 In production, only `ERROR` level messages will appear in the output.

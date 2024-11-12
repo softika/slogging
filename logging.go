@@ -28,7 +28,7 @@ var (
 // it defaults to INFO level.
 // This function supports injecting a custom handler on the first call, allowing for flexible logging configurations.
 //
-// Example usage:
+// Example usage with a custom handler:
 //
 //	logger := slogging.Slogger(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 //	      Level: slog.LevelError,
