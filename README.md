@@ -5,7 +5,7 @@
 # Logging Library
 
 This package provides a **zero dependencies singleton logger** using the `slog` package, configured with different logging levels based on the application environment. 
-By default, it outputs logs in JSON format. Optionally, you can inject your own `slog.Handler` to the `slogger` to change the format of log entries.
+By default, it outputs logs in JSON format. Optionally, you can inject your own [slog.Handler](https://pkg.go.dev/log/slog#Handler) to the `slogger` to change the format of log entries.
 
 ## Features
 
@@ -15,13 +15,13 @@ By default, it outputs logs in JSON format. Optionally, you can inject your own 
     - `production`: Error level.
     - Default: Info level.
 - Singleton logger instance to ensure only one logger is created.
-- Logging with context.
+- Logging with context and logging its attributes like `X-Correlation-Id`.
 - Custom `slog.Handler` injection.
 
 ## Installation
 
 ```bash
-go get github.com/softika/logging
+go get github.com/softika/slogging
 ```
 
 ## Usage
@@ -60,22 +60,25 @@ import (
 func main() {
     // Get the logger instance
     logger := slogging.Slogger()
+	
+	// Set as default logger
+	slog.SetDefault(logger)
 
     // Log an Info message
-    logger.Info("application info", slog.String("module", "logging"))
+    slog.Info("application info", slog.String("module", "logging"))
 
     // Log a Debug message (only in local or development environments)
-    logger.Debug("application debug", slog.String("module", "logging"))
+    slog.Debug("application debug", slog.String("module", "logging"))
 
     // Log a Warning message
-    logger.Warn("application warning", slog.String("module", "logging"))
+    slog.Warn("application warning", slog.String("module", "logging"))
     
     // Log error with context
     ctx := context.WithValue(context.Background(), "X-Correlation-Id", "unique_id_value")
-    logger.ErrorContext(ctx, "error message", "error", errors.New("error details"))
+    slog.ErrorContext(ctx, "error message", "error", errors.New("error details"))
 
     ctx = context.WithValue(ctx, "X-User-Id", "unique_id_value")
-    logger.ErrorContext(ctx, "error message", "error", errors.New("error details"))
+    slog.ErrorContext(ctx, "error message", "error", errors.New("error details"))
 }
 ```
 
