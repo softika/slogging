@@ -1,0 +1,26 @@
+version: 2
+
+updates:
+  # Go modules. This package has no dependencies today, so this exists to catch
+  # the day that changes rather than to service routine bumps.
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      go-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  # Workflow actions. Pinned majors go stale quietly and drift onto deprecated
+  # runtimes, which is how the lint job ended up stuck on golangci-lint v1.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns:
+          - "*"

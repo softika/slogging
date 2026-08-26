@@ -201,3 +201,25 @@ func TestNewHandlerIsIndependent(t *testing.T) {
 		t.Error("handlers wrote identical output; they are not independent")
 	}
 }
+
+// TestPlainStringKeyIsIgnored pins the reason the key constants exist.
+//
+// context.Value matches on the key's dynamic type as well as its value, and
+// these keys have an unexported type. A plain string therefore never matches,
+// and the value silently never reaches the log record. The README example got
+// this wrong for several releases, documenting output that could not occur.
+func TestPlainStringKeyIsIgnored(t *testing.T) {
+	t.Parallel()
+
+	buf := new(bytes.Buffer)
+	logger := slog.New(slogging.NewHandler(slogging.WithWriter(buf)))
+
+	//nolint:staticcheck // SA1029: using a string key is the mistake under test.
+	ctx := context.WithValue(context.Background(), "X-Request-Id", "req-1")
+	logger.InfoContext(ctx, "hello")
+
+	got := decode(t, buf)
+	if _, found := got["X-Request-Id"]; found {
+		t.Error("a plain string key matched; the keys no longer have a distinct type")
+	}
+}

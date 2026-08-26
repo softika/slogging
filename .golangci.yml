@@ -1,0 +1,32 @@
+version: "2"
+
+run:
+  timeout: 10m
+
+linters:
+  default: standard
+  enable:
+    # Security scanner: hardcoded credentials, weak crypto, unsafe file perms.
+    - gosec
+    # Enforces %w wrapping and errors.Is/As over == and type assertions.
+    - errorlint
+    # Contexts must be passed down, never dropped or replaced with Background.
+    # This package's whole purpose is reading values off a context, so a
+    # dropped context silently empties every log record.
+    - contextcheck
+    # Catches loop-variable capture and other common footguns.
+    - copyloopvar
+    # Reports unhandled type-switch and switch cases on typed constants.
+    - exhaustive
+    - nilerr
+    - unconvert
+    - wastedassign
+
+  settings:
+    exhaustive:
+      default-signifies-exhaustive: true
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
