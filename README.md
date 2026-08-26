@@ -1,6 +1,6 @@
 ![go workflow](https://github.com/softika/slogging/actions/workflows/test.yml/badge.svg)
 ![lint workflow](https://github.com/softika/slogging/actions/workflows/lint.yml/badge.svg)
-[![Go Report Card](https://goreportcard.com/badge/github.com/softika/slogging)](https://goreportcard.com/report/github.com/softika/slogging)
+![security workflow](https://github.com/softika/slogging/actions/workflows/security.yml/badge.svg)
 
 # Logging Library
 
@@ -24,6 +24,8 @@ across systems.
 ```bash
 go get github.com/softika/slogging
 ```
+
+Requires **Go 1.27** or later.
 
 ## Usage
 
