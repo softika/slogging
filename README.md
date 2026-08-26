@@ -4,19 +4,20 @@
 
 # Logging Library
 
-This package provides a **zero dependencies singleton logger** using the `slog` package, configured with different logging levels based on the application environment. 
-By default, it outputs logs in JSON format. Optionally, you can inject your own [slog.Handler](https://pkg.go.dev/log/slog#Handler) to the `slogger` to change the format of log entries.
+A **zero dependency** structured logger built on `log/slog`. It emits JSON and
+stamps context-scoped values -- request ids, correlation ids, user ids -- onto
+every record, so logs from one request can be tied together across layers and
+across systems.
 
 ## Features
 
 - JSON-formatted logs for structured logging.
-- Configurable log level based on the `ENVIRONMENT` variable.
-    - `local`, `development`: Debug level.
-    - `production`: Error level.
-    - Default: Info level.
-- Singleton logger instance to ensure only one logger is created.
-- Logging with context and logging its attributes like `X-Correlation-Id`.
-- Custom `slog.Handler` injection.
+- Context values stamped onto every record, including on loggers derived with
+  `With` and `WithGroup`.
+- Pluggable extractors, so anything on the context can be logged without
+  changing this package.
+- Level from configuration (`NewHandler`) or from the environment (`Slogger`).
+- Optional singleton, for applications that want one global logger.
 
 ## Installation
 
@@ -26,107 +27,148 @@ go get github.com/softika/slogging
 
 ## Usage
 
-### 1. Import the Package
+There are two entry points. Use `NewHandler` unless you specifically want a
+process-wide singleton.
 
-Import the `slogging` package in your Go code:
-
-```go
-import "github.com/softika/slogging"
-```
-
-### 2. Configure the Environment Variable
-
-Set the `ENVIRONMENT` environment variable to control the log level:
-
-```bash
-export ENVIRONMENT=development  # Options: local, development, production
-```
-
-### 3. Use the Logger
-
-Retrieve the singleton logger instance by calling `Slogger()`, and use it for logging messages.
+### `NewHandler` -- configurable, independent
 
 ```go
 package main
 
 import (
-    "log/slog"
-    "context"
-    "errors"
-	
-    "github.com/softika/slogging"
+	"context"
+	"log/slog"
+
+	"github.com/softika/slogging"
 )
 
 func main() {
-    // Get the logger instance
-    logger := slogging.Slogger()
-	
-	// Set as default logger
-	slog.SetDefault(logger)
+	slog.SetDefault(slog.New(slogging.NewHandler(
+		slogging.WithLevel(slog.LevelInfo),
+	)))
 
-    // Log an Info message
-    slog.Info("application info", slog.String("module", "logging"))
+	ctx := context.WithValue(context.Background(), slogging.CorrelationIdKey, "unique_id_value")
 
-    // Log a Debug message (only in local or development environments)
-    slog.Debug("application debug", slog.String("module", "logging"))
-
-    // Log a Warning message
-    slog.Warn("application warning", slog.String("module", "logging"))
-    
-    // Log error with context
-    ctx := context.WithValue(context.Background(), "X-Correlation-Id", "unique_id_value")
-    slog.ErrorContext(ctx, "error message", "error", errors.New("error details"))
-
-    ctx = context.WithValue(ctx, "X-User-Id", "unique_id_value")
-    slog.ErrorContext(ctx, "error message", "error", errors.New("error details"))
+	slog.InfoContext(ctx, "application info", slog.String("module", "logging"))
 }
 ```
-
-## Example Output
-
-With `ENVIRONMENT=development`, the output for the above logs would look like:
 
 ```json
-{"time":"2024-11-02T22:39:45.732646+01:00","level":"INFO","msg":"application info","module":"logging"}
-{"time":"2024-11-02T22:39:45.732812+01:00","level":"DEBUG","msg":"application debug","module":"logging"}
-{"time":"2024-11-02T22:39:45.732815+01:00","level":"WARN","msg":"application warning","module":"logging"}
-{"time":"2024-11-02T22:39:45.732818+01:00","level":"ERROR","msg":"error message","error":"error details","X-Correlation-Id":"unique_id_value"}
-{"time":"2024-11-02T22:39:45.732823+01:00","level":"ERROR","msg":"error message","error":"error details","X-Correlation-Id":"unique_id_value","X-User-Id":"unique_id_value"}
+{"time":"2024-11-02T22:39:45.732646+01:00","level":"INFO","msg":"application info","module":"logging","X-Correlation-Id":"unique_id_value"}
 ```
 
-In production, only `ERROR` level messages will appear in the output.
+Options:
 
-## Custom Handler
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `WithWriter(io.Writer)` | `os.Stdout` | Destination. Pass a buffer to assert on output in tests |
+| `WithLevel(slog.Leveler)` | `slog.LevelInfo` | Minimum level. Accepts `*slog.LevelVar`, so the level can change at runtime |
+| `WithExtractor(...Extractor)` | `ContextIds` | Which context values to stamp onto records |
 
-You can inject your own `slog.Handler` to the logger instance. For example, you can use the `slog.TextHandler` to output logs in text format:
+Each call returns an independent handler, so a process can build more than one
+and a test can capture its output.
+
+### `Slogger` -- the singleton
 
 ```go
-package main
-
-import (
-    "errors"
-    "log/slog"
-    "os"
-    
-    "github.com/softika/slogging"
-)
-
-func main() {
-    // create new slog.Handler	
-    handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-        Level: slog.LevelError,
-    })
-	
-    // init logger with custom handler
-    logger := slogging.Slogger(handler)
-
-    // log error
-    logger.Error("error message", "error", errors.New("error details"))
-}
+logger := slogging.Slogger()
+slog.SetDefault(logger)
 ```
 
-And the output would be:
+The first call wins; later calls return that same logger whatever arguments they
+pass. Its level comes from the `ENVIRONMENT` variable:
+
+| `ENVIRONMENT` | Level |
+| --- | --- |
+| `local`, `development` | Debug |
+| `production` | Error |
+| unset or anything else | Info |
+
+> **Note:** `production` maps to Error, which discards Info and Warn records --
+> including startup, shutdown and most diagnostics. This is long-standing
+> behaviour, kept for compatibility. To choose the level yourself, build a
+> handler with `NewHandler` and `WithLevel`.
+
+## Context values
+
+Set values using the exported key constants:
+
+```go
+ctx = context.WithValue(ctx, slogging.RequestIdKey, "unique_id_value")
+```
+
+Use the constants, **not** a plain string. `context.Value` matches on the key's
+dynamic type as well as its value, and these keys have an unexported type -- so
+`context.WithValue(ctx, "X-Request-Id", v)` silently never matches and the value
+never reaches your logs.
+
+The keys stamped by default:
+
+| Constant | Log field |
+| --- | --- |
+| `RequestIdKey` | `X-Request-Id` |
+| `CorrelationIdKey` | `X-Correlation-Id` |
+| `UserIdKey` | `X-User-Id` |
+| `AccountIdKey` | `X-Account-Id` |
+| `OrgIdKey` | `X-Org-Id` |
+
+## Custom extractors
+
+An `Extractor` reads a context and returns attributes:
+
+```go
+type Extractor func(context.Context) []slog.Attr
+```
+
+This is how anything context-scoped gets logged without this package having to
+know about it -- a tenant, a feature flag, or a tracing id:
+
+```go
+func traceAttrs(ctx context.Context) []slog.Attr {
+	sc := trace.SpanContextFromContext(ctx)
+	if !sc.IsValid() {
+		return nil
+	}
+	return []slog.Attr{
+		slog.String("trace_id", sc.TraceID().String()),
+		slog.String("span_id", sc.SpanID().String()),
+	}
+}
+
+handler := slogging.NewHandler(
+	slogging.WithExtractor(slogging.ContextIds, traceAttrs),
+)
+```
+
+Supplying any extractor **replaces** the `ContextIds` default rather than adding
+to it, so name both when you want both. Keeping the OpenTelemetry import on the
+caller's side is what lets this package stay dependency free.
+
+## Custom handler
+
+`Slogger` also accepts a `slog.Handler` on its first call, replacing the JSON
+handler entirely:
+
+```go
+handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+	Level: slog.LevelError,
+})
+
+logger := slogging.Slogger(handler)
+logger.Error("error message", "error", errors.New("error details"))
+```
 
 ```
 time=2024-11-02T22:59:19.256+01:00 level=ERROR msg="error message" error="error details"
 ```
+
+Note that an injected handler is used as given: context extraction is not
+applied to it, since that is the wrapping this package would otherwise provide.
+
+## A note on groups
+
+Attributes added while a group is open are qualified by that group, which is
+what `slog.Handler`'s contract requires. Context values are stamped as the
+record is handled, so under `WithGroup("db")` they appear as
+`{"db":{"X-Request-Id":"..."}}`. Use `With` rather than `WithGroup` if you need
+these ids to stay at the top level.

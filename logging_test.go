@@ -27,11 +27,13 @@ func TestSloggerSingleton(t *testing.T) {
 	}
 }
 
+// TestSloggerEnvironment is a smoke test over the context-aware paths.
+//
+// It does not run in parallel: it mutates the environment, and t.Setenv panics
+// in a parallel test. Output assertions live in handler_test.go, which can
+// capture a buffer instead of writing to stdout.
 func TestSloggerEnvironment(t *testing.T) {
-	t.Parallel()
-
-	os.Setenv("ENVIRONMENT", "development")
-	defer os.Unsetenv("ENVIRONMENT")
+	t.Setenv("ENVIRONMENT", "development")
 
 	logger := slogging.Slogger()
 
@@ -74,7 +76,6 @@ func TestSlogger(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -100,10 +101,7 @@ func TestSlogger(t *testing.T) {
 }
 
 func TestLoggerWithHandler(t *testing.T) {
-	t.Parallel()
-
-	os.Setenv("ENVIRONMENT", "development")
-	defer os.Unsetenv("ENVIRONMENT")
+	t.Setenv("ENVIRONMENT", "development")
 
 	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelError,

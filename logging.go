@@ -1,7 +1,6 @@
 package slogging
 
 import (
-	"context"
 	"log/slog"
 	"os"
 	"sync"
@@ -33,6 +32,11 @@ var (
 //	logger := slogging.Slogger(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 //	      Level: slog.LevelError,
 //	}))
+//
+// Slogger is a process-wide singleton: the first call wins and later calls
+// return that same logger, whatever arguments they pass. Prefer NewHandler when
+// you need an independent logger, want the level to come from configuration
+// rather than the environment, or need to assert on output in a test.
 func Slogger(h ...slog.Handler) *slog.Logger {
 	once.Do(func() {
 		if len(h) > 0 {
@@ -40,60 +44,23 @@ func Slogger(h ...slog.Handler) *slog.Logger {
 			return
 		}
 
-		logLevel := slog.LevelInfo
-
-		env := os.Getenv("ENVIRONMENT")
-		switch env {
-		case "local", "development":
-			logLevel = slog.LevelDebug
-		case "production":
-			logLevel = slog.LevelError
-		}
-
-		jsonHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-			Level: logLevel,
-		})
-		logger = slog.New(newContextJsonHandler(jsonHandler))
-
+		logger = slog.New(NewHandler(WithLevel(levelFromEnv())))
 	})
 	return logger
 }
 
-type contextJsonHandler struct {
-	handler *slog.JSONHandler
-}
-
-func newContextJsonHandler(handler *slog.JSONHandler) slog.Handler {
-	return &contextJsonHandler{handler: handler}
-}
-
-func (h *contextJsonHandler) Handle(ctx context.Context, r slog.Record) error {
-	if requestId, ok := ctx.Value(RequestIdKey).(string); ok {
-		r.AddAttrs(slog.String(string(RequestIdKey), requestId))
+// levelFromEnv reports the log level implied by the ENVIRONMENT variable.
+//
+// Note that production maps to Error, which discards Info and Warn records.
+// This is long-standing behaviour and is kept for compatibility; build a
+// handler with NewHandler and WithLevel to choose the level yourself.
+func levelFromEnv() slog.Level {
+	switch os.Getenv("ENVIRONMENT") {
+	case "local", "development":
+		return slog.LevelDebug
+	case "production":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
 	}
-	if correlationId, ok := ctx.Value(CorrelationIdKey).(string); ok {
-		r.AddAttrs(slog.String(string(CorrelationIdKey), correlationId))
-	}
-	if userId, ok := ctx.Value(UserIdKey).(string); ok {
-		r.AddAttrs(slog.String(string(UserIdKey), userId))
-	}
-	if accountId, ok := ctx.Value(AccountIdKey).(string); ok {
-		r.AddAttrs(slog.String(string(AccountIdKey), accountId))
-	}
-	if orgId, ok := ctx.Value(OrgIdKey).(string); ok {
-		r.AddAttrs(slog.String(string(OrgIdKey), orgId))
-	}
-	return h.handler.Handle(ctx, r)
-}
-
-func (h *contextJsonHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return h.handler.WithAttrs(attrs)
-}
-
-func (h *contextJsonHandler) WithGroup(name string) slog.Handler {
-	return h.handler.WithGroup(name)
-}
-
-func (h *contextJsonHandler) Enabled(ctx context.Context, level slog.Level) bool {
-	return h.handler.Enabled(ctx, level)
 }
